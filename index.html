@@ -38,26 +38,22 @@
         <alt="Logo Senkom Mitra Polri"
         <class="h-0 w-auto object-contain bg-white rounded-full p-1 border border-amber-100"
       />
-            <div>
-                <h1 class="text-lg font-bold tracking-wide leading-tight">SENKOM MITRA POLRI</h1>
-                <p class="text-xs text-indigo-200">Sistem Informasi Program Kerja & Realisasi Anggaran</p>
+</div>
+                <div>
+                    <h1 class="text-xl font-bold tracking-wide">SENKOM MITRA POLRI</h1>
+                    <p class="text-xs text-indigo-200">Sistem Informasi Program Kerja & Realisasi Anggaran</p>
+                </div>
             </div>
-        </div>
 
-        <template x-if="isReadOnly">
-            <span class="bg-amber-500 text-slate-900 text-xs font-bold px-3 py-1 rounded-full shadow flex items-center gap-1">
-                <i class="fa-solid fa-eye"></i> Mode Lihat Saja
-            </span>
-        </template>
-    </div>
+            <!-- Mode View Only Notice -->
+            <template x-if="isReadOnly">
+                <span class="bg-amber-500 text-slate-900 text-xs font-bold px-3 py-1 rounded-full shadow flex items-center gap-1">
+                    <i class="fa-solid fa-eye"></i> Mode Lihat Saja (Read-Only)
+                </span>
+            </template>
 
-    <!-- Baris 2: Sub-Barar Sejajar (Tab Navigasi di Kiri, Aksi Dokumen di Kanan) -->
-    <div class="bg-indigo-950/40 px-4 sm:px-6 lg:px-8 py-2">
-        <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
-            
-            <!-- Tab Navigasi (Sisi Kiri) -->
-            <nav class="flex flex-wrap items-center gap-2">
-                <button @click="activeTab = 'dashboard'" :class="activeTab === 'dashboard' ? 'bg-indigo-600 text-white shadow' : 'text-indigo-200 hover:bg-indigo-800/60'" class="px-3 py-1.5 rounded-md text-xs font-semibold transition flex items-center gap-1.5">
+            <!-- Navigation Tabs -->
+            <nav class="flex flex-wrap gap-2">                <button @click="activeTab = 'dashboard'" :class="activeTab === 'dashboard' ? 'bg-indigo-600 text-white shadow' : 'text-indigo-200 hover:bg-indigo-800/60'" class="px-3 py-1.5 rounded-md text-xs font-semibold transition flex items-center gap-1.5">
                     <i class="fa-solid fa-chart-pie"></i> Dashboard
                 </button>
                 <button @click="activeTab = 'pagu'" :class="activeTab === 'pagu' ? 'bg-indigo-600 text-white shadow' : 'text-indigo-200 hover:bg-indigo-800/60'" class="px-3 py-1.5 rounded-md text-xs font-semibold transition flex items-center gap-1.5">
