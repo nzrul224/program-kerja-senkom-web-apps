@@ -27,23 +27,32 @@
 </head>
 <body class="bg-slate-100 text-slate-800 font-sans antialiased min-h-screen" x-data="appData()" x-init="initData()">
 
-    <!-- HEADER / NAVBAR -->
-    <header class="bg-indigo-900 text-white shadow-lg no-print">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex flex-wrap items-center justify-between gap-4">
-            <div class="flex items-center space-x-3">
-                <!-- LOGO SENKOM MITRA POLRI -->
-                <div class="bg-white p-1 rounded-full shadow border border-amber-400 flex items-center justify-center w-12 h-12">
-                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/6/6b/Logo_Senkom_Mitra_Polri.png/300px-Logo_Senkom_Mitra_Polri.png"/>
-                         alt="Logo Senkom Mitra Polri" 
-                         class="h-10 w-auto object-contain"
-                         onerror="this.onerror=null; this.src='https://via.placeholder.com/48?text=SENKOM';">
-                </div>
-                <div>
-                    <h1 class="text-xl font-bold tracking-wide">SENKOM MITRA POLRI</h1>
-                    <p class="text-xs text-indigo-200">Sistem Informasi Program Kerja & Realisasi Anggaran</p>
-                </div>
-            </div>
+    <!-- Bagian Header Aplikasi -->
+<header class="bg-indigo-900 text-white shadow-md py-4 px-6 mb-6">
+  <div class="max-w-7xl mx-auto flex items-center justify-between">
+    
+    <!-- Container Logo dan Judul -->
+    <div class="flex items-center space-x-4">
+      <!-- Tag Gambar Logo SENKOM -->
+      <img 
+        src="URL_LOGO_SENKOM_ANDA.png" 
+        alt="Logo Senkom Mitra Polri" 
+        class="h-12 w-auto object-contain bg-white rounded-full p-1 border border-amber-400"
+      />
+      
+      <div>
+        <h1 class="text-xl font-bold tracking-wide">PROGRAM KERJA ORGANISASI</h1>
+        <p class="text-xs text-indigo-200">Senkom Mitra Polri - Kabupaten / Kota</p>
+      </div>
+    </div>
 
+    <!-- Tombol / Aksi Tambahan (opsional) -->
+    <div>
+      ...
+    </div>
+
+  </div>
+</header>
             <!-- Mode View Only Notice -->
             <template x-if="isReadOnly">
                 <span class="bg-amber-500 text-slate-900 text-xs font-bold px-3 py-1 rounded-full shadow flex items-center gap-1">
