@@ -1,0 +1,1458 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistem Manajemen Program Kerja & Pagu Anggaran Organisasi</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Alpine.js for Reactivity -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <!-- Font Inter & FontAwesome -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Library untuk Export Excel & PDF -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style>
+        [x-cloak] { display: none !important; }
+        
+        /* Print Specific Styling */
+        @media print {
+            header, .no-print, button, input[type="file"], select {
+                display: none !important;
+            }
+            body {
+                background-color: white !important;
+                color: black !important;
+                font-size: 11pt;
+            }
+            main {
+                max-width: 100% !important;
+                padding: 0 !important;
+                margin: 0 !important;
+            }
+            .print-break-inside-prevent {
+                page-break-inside: avoid;
+            }
+            .print-card {
+                box-shadow: none !important;
+                border: 1px solid #cbd5e1 !important;
+                margin-bottom: 1.5rem !important;
+            }
+            .print-header-title {
+                display: block !important;
+            }
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans antialiased" x-data="appData()">
+
+    <!-- Header Tambahan Khusus Hasil Cetak Print / PDF -->
+    <div class="hidden print-header-title p-4 border-b-2 border-slate-800 mb-6">
+        <div class="text-center">
+            <h1 class="text-2xl font-bold uppercase tracking-wide">LAPORAN PROGRAM KERJA & REALISASI ANGGARAN ORGANISASI</h1>
+            <p class="text-xs text-slate-600 mt-1">Sistem Informasi Program Kerja & Pagu Anggaran (SI-PROKER)</p>
+            <p class="text-[10px] text-slate-500 mt-0.5">Tanggal Cetak: <span x-text="new Date().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })"></span></p>
+        </div>
+    </div>
+
+    <!-- Wrapper -->
+    <div class="min-h-screen flex flex-col">
+
+        <!-- Top Header / Navigation -->
+        <header class="bg-indigo-700 text-white shadow-md sticky top-0 z-50">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex flex-col md:flex-row justify-between items-center gap-4">
+                <div class="flex items-center space-x-3">
+                    <div class="bg-white/10 p-2.5 rounded-xl backdrop-blur-sm border border-white/20">
+                        <i class="fa-solid fa-diagram-project text-2xl text-indigo-200"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-xl font-bold tracking-tight">SI-PROKER ORG</h1>
+                        <p class="text-xs text-indigo-200">Sistem Informasi Program Kerja & Pagu Anggaran</p>
+                    </div>
+                </div>
+
+                <!-- Navigation Tabs & Actions -->
+                <div class="flex flex-wrap items-center gap-2">
+                    <nav class="flex flex-wrap gap-1 bg-indigo-900/40 p-1.5 rounded-xl border border-indigo-600/50">
+                        <button @click="activeTab = 'dashboard'" 
+                            :class="activeTab === 'dashboard' ? 'bg-white text-indigo-700 shadow-sm font-semibold' : 'text-indigo-100 hover:bg-indigo-800/60'"
+                            class="px-3.5 py-1.5 rounded-lg text-xs md:text-sm transition-all flex items-center gap-1.5">
+                            <i class="fa-solid fa-chart-pie"></i> Dashboard
+                        </button>
+                        <button @click="activeTab = 'pagu'" 
+                            :class="activeTab === 'pagu' ? 'bg-white text-indigo-700 shadow-sm font-semibold' : 'text-indigo-100 hover:bg-indigo-800/60'"
+                            class="px-3.5 py-1.5 rounded-lg text-xs md:text-sm transition-all flex items-center gap-1.5">
+                            <i class="fa-solid fa-vault"></i> Pagu
+                        </button>
+                        <button @click="activeTab = 'proker'" 
+                            :class="activeTab === 'proker' ? 'bg-white text-indigo-700 shadow-sm font-semibold' : 'text-indigo-100 hover:bg-indigo-800/60'"
+                            class="px-3.5 py-1.5 rounded-lg text-xs md:text-sm transition-all flex items-center gap-1.5">
+                            <i class="fa-solid fa-list-check"></i> Proker & RAB
+                        </button>
+                        <button @click="activeTab = 'laporan'" 
+                            :class="activeTab === 'laporan' ? 'bg-white text-indigo-700 shadow-sm font-semibold' : 'text-indigo-100 hover:bg-indigo-800/60'"
+                            class="px-3.5 py-1.5 rounded-lg text-xs md:text-sm transition-all flex items-center gap-1.5">
+                            <i class="fa-solid fa-clipboard-check"></i> Laporan
+                        </button>
+                        <button @click="activeTab = 'dokumentasi'" 
+                            :class="activeTab === 'dokumentasi' ? 'bg-white text-indigo-700 shadow-sm font-semibold' : 'text-indigo-100 hover:bg-indigo-800/60'"
+                            class="px-3.5 py-1.5 rounded-lg text-xs md:text-sm transition-all flex items-center gap-1.5">
+                            <i class="fa-solid fa-images"></i> Dokumentasi
+                        </button>
+                    </nav>
+
+                    <!-- Share, Print & Apps Script Action Buttons -->
+                    <div class="flex items-center gap-1.5">
+                        <button @click="exportToExcel()" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold transition-all shadow-sm flex items-center gap-1.5" title="Export File Excel (.xlsx)">
+                            <i class="fa-solid fa-file-excel"></i> <span class="hidden sm:inline">Excel</span>
+                        </button>
+                        <button @click="openPrintModal()" class="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-semibold transition-all shadow-sm flex items-center gap-1.5" title="Export PDF & Cetak Laporan">
+                            <i class="fa-solid fa-file-pdf"></i> <span class="hidden sm:inline">PDF / Cetak</span>
+                        </button>
+                        <button x-show="!isReadOnly" @click="showModalBackup = true" class="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-semibold transition-all shadow-sm flex items-center gap-1.5" title="Backup & Restore Data">
+                            <i class="fa-solid fa-database"></i> <span class="hidden sm:inline">Backup</span>
+                        </button>
+                        <button @click="openShareModal()" class="px-3 py-1.5 bg-indigo-500 hover:bg-indigo-600 text-white rounded-xl text-xs font-semibold transition-all shadow-sm flex items-center gap-1.5" title="Bagikan Laporan (Lihat Saja)">
+                            <i class="fa-solid fa-share-nodes"></i> <span class="hidden sm:inline">Bagikan</span>
+                        </button>
+                        <button @click="showModalAppsScript = true" class="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs font-semibold transition-all shadow-sm flex items-center gap-1.5" title="Kode Google Apps Script">
+                            <i class="fa-solid fa-code"></i> <span class="hidden sm:inline">Kode GS</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Read-Only Mode Banner Indicator -->
+        <div x-show="isReadOnly" class="bg-amber-500 text-slate-900 font-semibold px-4 py-2 text-center text-xs flex items-center justify-center gap-2 shadow-inner no-print">
+            <i class="fa-solid fa-lock text-sm"></i>
+            <span><strong>Mode Hanya Melihat (Read-Only):</strong> Anda sedang mengakses laporan ini tanpa hak akses untuk menambah, mengubah, atau menghapus data.</span>
+            <button x-show="!isURLReadOnlyMode" @click="toggleReadOnlyMode(false)" class="underline text-slate-900 ml-2 text-[11px] font-bold">Keluar Mode Publik</button>
+        </div>
+
+        <!-- Main Content Container -->
+        <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-grow w-full">
+
+            <!-- ================= TAB 1: DASHBOARD ================= -->
+            <div x-show="activeTab === 'dashboard' || isPrintingAll" x-cloak class="space-y-6 print-break-inside-prevent">
+                <!-- Summary Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-5">
+                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex items-center gap-4 print-card">
+                        <div class="p-4 bg-purple-50 text-purple-600 rounded-xl no-print">
+                            <i class="fa-solid fa-piggy-bank text-2xl"></i>
+                        </div>
+                        <div>
+                            <p class="text-xs text-slate-500 font-medium">Total Pagu Anggaran</p>
+                            <h3 class="text-xl font-bold text-slate-800" x-text="formatIDR(paguTotal)">Rp 0</h3>
+                        </div>
+                    </div>
+                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex items-center gap-4 print-card">
+                        <div class="p-4 bg-indigo-50 text-indigo-600 rounded-xl no-print">
+                            <i class="fa-solid fa-calculator text-2xl"></i>
+                        </div>
+                        <div>
+                            <p class="text-xs text-slate-500 font-medium">Total Rencana RAB</p>
+                            <h3 class="text-xl font-bold text-slate-800" x-text="formatIDR(totalAnggaranPlan())">Rp 0</h3>
+                        </div>
+                    </div>
+                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex items-center gap-4 print-card">
+                        <div class="p-4 bg-emerald-50 text-emerald-600 rounded-xl no-print">
+                            <i class="fa-solid fa-money-bill-transfer text-2xl"></i>
+                        </div>
+                        <div>
+                            <p class="text-xs text-slate-500 font-medium">Total Realisasi Biaya</p>
+                            <h3 class="text-xl font-bold text-slate-800" x-text="formatIDR(totalRealisasiBiaya())">Rp 0</h3>
+                        </div>
+                    </div>
+                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex items-center gap-4 print-card">
+                        <div class="p-4 bg-amber-50 text-amber-600 rounded-xl no-print">
+                            <i class="fa-solid fa-scale-balanced text-2xl"></i>
+                        </div>
+                        <div>
+                            <p class="text-xs text-slate-500 font-medium">Sisa Pagu Terpakai</p>
+                            <h3 class="text-xl font-bold" 
+                                :class="sisaPagu() < 0 ? 'text-rose-600' : 'text-slate-800'" 
+                                x-text="formatIDR(sisaPagu())">Rp 0</h3>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Budget Usage Gauge Card -->
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4 print-card">
+                    <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-2">
+                        <div>
+                            <h3 class="text-base font-bold text-slate-800">Status Penyerapan Pagu Anggaran</h3>
+                            <p class="text-xs text-slate-500">Perbandingan batas pagu total terhadap rencana RAB dan realisasi aktual.</p>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="px-3 py-1 text-xs font-semibold rounded-full"
+                                  :class="persentaseRAB() > 100 ? 'bg-rose-100 text-rose-700' : 'bg-indigo-100 text-indigo-700'">
+                                Planned: <span x-text="persentaseRAB() + '%'"></span>
+                            </span>
+                            <span class="px-3 py-1 text-xs font-semibold rounded-full bg-emerald-100 text-emerald-700">
+                                Realized: <span x-text="persentaseRealisasi() + '%'"></span>
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Visual Progress Bars -->
+                    <div class="space-y-3 pt-2">
+                        <div>
+                            <div class="flex justify-between text-xs text-slate-500 mb-1 font-medium">
+                                <span>Alokasi Rencana RAB vs Pagu</span>
+                                <span x-text="formatIDR(totalAnggaranPlan()) + ' / ' + formatIDR(paguTotal)"></span>
+                            </div>
+                            <div class="w-full bg-slate-100 rounded-full h-3 overflow-hidden">
+                                <div class="h-3 rounded-full transition-all duration-500" 
+                                     :class="persentaseRAB() > 100 ? 'bg-rose-500' : 'bg-indigo-600'" 
+                                     :style="`width: ${Math.min(persentaseRAB(), 100)}%`"></div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <div class="flex justify-between text-xs text-slate-500 mb-1 font-medium">
+                                <span>Penyerapan Realisasi Biaya vs Pagu</span>
+                                <span x-text="formatIDR(totalRealisasiBiaya()) + ' / ' + formatIDR(paguTotal)"></span>
+                            </div>
+                            <div class="w-full bg-slate-100 rounded-full h-3 overflow-hidden">
+                                <div class="bg-emerald-500 h-3 rounded-full transition-all duration-500" 
+                                     :style="`width: ${Math.min(persentaseRealisasi(), 100)}%`"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div x-show="persentaseRAB() > 100" class="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-xs flex items-center gap-2">
+                        <i class="fa-solid fa-triangle-exclamation text-base"></i>
+                        <span><strong>Peringatan Defisit Pagu:</strong> Total Alokasi Rencana RAB melebihi Pagu Anggaran sebesar <strong x-text="formatIDR(Math.abs(sisaPagu()))"></strong>. Harap lakukan penyesuaian anggaran!</span>
+                    </div>
+                </div>
+
+                <!-- Recent Summary Table -->
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden print-card">
+                    <div class="p-6 border-b border-slate-100 flex justify-between items-center">
+                        <div>
+                            <h2 class="text-lg font-bold text-slate-800">Ringkasan Status & Kontrol Proker</h2>
+                            <p class="text-xs text-slate-500">Pantau progres pelaksanaan program kerja organisasi terkini.</p>
+                        </div>
+                        <button @click="activeTab = 'proker'" class="text-sm font-semibold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 no-print">
+                            Kelola Semua <i class="fa-solid fa-arrow-right text-xs"></i>
+                        </button>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-slate-50 text-slate-500 text-xs uppercase font-semibold border-b border-slate-200">
+                                    <th class="p-4">Nama Program Kerja</th>
+                                    <th class="p-4">Bidang / PJ</th>
+                                    <th class="p-4">Item RAB</th>
+                                    <th class="p-4">Rencana Anggaran</th>
+                                    <th class="p-4">Status Kontrol</th>
+                                    <th class="p-4">Realisasi (%)</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100 text-sm">
+                                <template x-for="item in prokers" :key="item.id">
+                                    <tr class="hover:bg-slate-50/50">
+                                        <td class="p-4 font-semibold text-slate-800" x-text="item.nama"></td>
+                                        <td class="p-4 text-slate-600">
+                                            <span x-text="item.bidang"></span> <br>
+                                            <span class="text-xs text-slate-400" x-text="item.pj"></span>
+                                        </td>
+                                        <td class="p-4">
+                                            <button @click="openRabModal(item)" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-2.5 py-1 rounded-lg border border-slate-200 flex items-center gap-1 font-medium">
+                                                <i class="fa-solid fa-calculator text-indigo-600 no-print"></i>
+                                                <span x-text="(item.rabItems ? item.rabItems.length : 0) + ' Item'"></span>
+                                            </button>
+                                        </td>
+                                        <td class="p-4 font-semibold text-slate-700" x-text="formatIDR(calculateProkerRabTotal(item))"></td>
+                                        <td class="p-4">
+                                            <span class="px-2.5 py-1 rounded-full text-xs font-medium"
+                                                :class="{
+                                                    'bg-amber-100 text-amber-800': item.status === 'Rencana',
+                                                    'bg-blue-100 text-blue-800': item.status === 'Sedang Berjalan',
+                                                    'bg-emerald-100 text-emerald-800': item.status === 'Selesai',
+                                                    'bg-rose-100 text-rose-800': item.status === 'Tertunda'
+                                                }" x-text="item.status"></span>
+                                        </td>
+                                        <td class="p-4">
+                                            <div class="flex items-center gap-3">
+                                                <div class="w-24 bg-slate-200 rounded-full h-2 overflow-hidden">
+                                                    <div class="bg-indigo-600 h-2 rounded-full" :style="`width: ${item.progress}%`"></div>
+                                                </div>
+                                                <span class="text-xs font-semibold text-slate-600" x-text="item.progress + '%'"></span>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </template>
+                                <tr x-show="!prokers || prokers.length === 0">
+                                    <td colspan="6" class="p-8 text-center text-slate-400">Belum ada program kerja yang ditambahkan.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ================= TAB 2: FITUR PAGU ANGGARAN ================= -->
+            <div x-show="activeTab === 'pagu' || isPrintingAll" x-cloak class="space-y-6 print-break-inside-prevent">
+                <!-- Control Pagu Utama -->
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex flex-col md:flex-row justify-between items-start md:items-center gap-6 print-card">
+                    <div>
+                        <h2 class="text-lg font-bold text-slate-800">Manajemen Pagu Anggaran Organisasi</h2>
+                        <p class="text-xs text-slate-500">Tentukan plafon/pagu anggaran utama dan alokasi pagu per bidang/kementerian.</p>
+                    </div>
+                    <div class="flex items-center gap-3 bg-slate-50 p-3 rounded-xl border border-slate-200 w-full md:w-auto">
+                        <div>
+                            <label class="text-[10px] uppercase font-bold text-slate-400 block">Total Pagu Induk (Rp)</label>
+                            <input type="number" x-model.number="paguTotal" @input="saveData()" class="text-base font-bold text-indigo-700 bg-white border border-slate-200 rounded-lg px-3 py-1 w-48 focus:outline-none focus:border-indigo-500">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Pagu Per Bidang Cards -->
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4 print-card">
+                    <div class="flex justify-between items-center">
+                        <h3 class="text-base font-bold text-slate-800">Alokasi Pagu Anggaran Per Bidang</h3>
+                        <button x-show="!isReadOnly" @click="openModalPaguBidang()" class="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 no-print">
+                            <i class="fa-solid fa-plus"></i> Tambah / Edit Bidang
+                        </button>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <template x-for="(b, index) in paguBidang" :key="index">
+                            <div class="p-4 rounded-xl border border-slate-200 bg-slate-50/50 space-y-3">
+                                <div class="flex justify-between items-start">
+                                    <div>
+                                        <h4 class="font-bold text-slate-800 text-sm" x-text="b.nama"></h4>
+                                        <p class="text-[11px] text-slate-400" x-text="countProkerByBidang(b.nama) + ' Program Kerja'"></p>
+                                    </div>
+                                    <button x-show="!isReadOnly" @click="removePaguBidang(index)" class="text-slate-400 hover:text-rose-600 text-xs no-print">
+                                        <i class="fa-solid fa-trash"></i>
+                                    </button>
+                                </div>
+
+                                <div class="space-y-1 text-xs">
+                                    <div class="flex justify-between text-slate-500">
+                                        <span>Pagu Alokasi:</span>
+                                        <span class="font-bold text-slate-700" x-text="formatIDR(b.pagu)"></span>
+                                    </div>
+                                    <div class="flex justify-between text-slate-500">
+                                        <span>Rencana RAB:</span>
+                                        <span class="font-semibold" :class="totalRabBidang(b.nama) > b.pagu ? 'text-rose-600' : 'text-indigo-600'" x-text="formatIDR(totalRabBidang(b.nama))"></span>
+                                    </div>
+                                    <div class="flex justify-between text-slate-500">
+                                        <span>Realisasi Biaya:</span>
+                                        <span class="font-semibold text-emerald-600" x-text="formatIDR(totalRealisasiBidang(b.nama))"></span>
+                                    </div>
+                                </div>
+
+                                <!-- Mini Progress Bar -->
+                                <div class="pt-1">
+                                    <div class="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
+                                        <div class="h-2 rounded-full" 
+                                             :class="totalRabBidang(b.nama) > b.pagu ? 'bg-rose-500' : 'bg-indigo-600'"
+                                             :style="`width: ${Math.min((totalRabBidang(b.nama) / (b.pagu || 1)) * 100, 100)}%`"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ================= TAB 3: PROGRAM KERJA & ANGGARAN ================= -->
+            <div x-show="activeTab === 'proker' || isPrintingAll" x-cloak class="space-y-6 print-break-inside-prevent">
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 print-card">
+                    <div>
+                        <h2 class="text-lg font-bold text-slate-800">Manajemen Program Kerja & Rincian Anggaran (RAB)</h2>
+                        <p class="text-xs text-slate-500">Kelola rencana, rincian item anggaran biaya, penanggung jawab, jadwal, dan kontrol status pelaksanaan.</p>
+                    </div>
+                    <div class="flex items-center gap-2 no-print">
+                        <button @click="exportToExcel()" class="px-3.5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold transition-all shadow-sm flex items-center gap-1.5">
+                            <i class="fa-solid fa-file-excel"></i> Export Excel (.xlsx)
+                        </button>
+                        <button x-show="!isReadOnly" @click="openProkerModal()" class="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold transition-all shadow-sm flex items-center gap-2">
+                            <i class="fa-solid fa-plus text-xs"></i> Tambah Proker
+                        </button>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden print-card">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-slate-50 text-slate-500 text-xs uppercase font-semibold border-b border-slate-200">
+                                    <th class="p-4">No</th>
+                                    <th class="p-4">Program Kerja</th>
+                                    <th class="p-4">Bidang & PJ</th>
+                                    <th class="p-4">Waktu</th>
+                                    <th class="p-4">Rincian Anggaran (RAB)</th>
+                                    <th class="p-4">Total Rencana Biaya</th>
+                                    <th class="p-4">Status Kontrol</th>
+                                    <th x-show="!isReadOnly" class="p-4 text-center no-print">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100 text-sm">
+                                <template x-for="(item, index) in prokers" :key="item.id">
+                                    <tr class="hover:bg-slate-50/50">
+                                        <td class="p-4 text-slate-500 font-medium" x-text="index + 1"></td>
+                                        <td class="p-4">
+                                            <p class="font-bold text-slate-800" x-text="item.nama"></p>
+                                            <p class="text-xs text-slate-500 mt-0.5 line-clamp-1" x-text="item.deskripsi"></p>
+                                        </td>
+                                        <td class="p-4 text-slate-600">
+                                            <span class="font-medium text-slate-800" x-text="item.bidang"></span>
+                                            <div class="text-xs text-slate-400" x-text="item.pj"></div>
+                                        </td>
+                                        <td class="p-4 text-slate-600 text-xs" x-text="item.waktu"></td>
+                                        <td class="p-4">
+                                            <button @click="openRabModal(item)" class="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg border border-indigo-200 text-xs font-semibold flex items-center gap-1.5 transition-colors">
+                                                <i class="fa-solid fa-list-ol no-print"></i>
+                                                <span>Rincian Biaya</span>
+                                                <span class="bg-indigo-600 text-white px-1.5 py-0.2 rounded-full text-[10px]" x-text="item.rabItems ? item.rabItems.length : 0"></span>
+                                            </button>
+                                        </td>
+                                        <td class="p-4 font-semibold text-slate-700" x-text="formatIDR(calculateProkerRabTotal(item))"></td>
+                                        <td class="p-4">
+                                            <select x-model="item.status" :disabled="isReadOnly" @change="saveData()" class="text-xs font-semibold px-3 py-1.5 rounded-lg border border-slate-200 bg-slate-50 focus:outline-none focus:border-indigo-500 disabled:opacity-80">
+                                                <option value="Rencana">Rencana</option>
+                                                <option value="Sedang Berjalan">Sedang Berjalan</option>
+                                                <option value="Selesai">Selesai</option>
+                                                <option value="Tertunda">Tertunda</option>
+                                            </select>
+                                        </td>
+                                        <td x-show="!isReadOnly" class="p-4 text-center no-print">
+                                            <div class="flex items-center justify-center gap-2">
+                                                <button @click="editProker(item)" title="Edit Proker" class="p-2 text-slate-400 hover:text-indigo-600 transition-colors">
+                                                    <i class="fa-solid fa-pen-to-square"></i>
+                                                </button>
+                                                <button @click="deleteProker(item.id)" title="Hapus Proker" class="p-2 text-slate-400 hover:text-rose-600 transition-colors">
+                                                    <i class="fa-solid fa-trash"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </template>
+                                <tr x-show="!prokers || prokers.length === 0">
+                                    <td colspan="8" class="p-8 text-center text-slate-400">Belum ada program kerja yang ditambahkan.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ================= TAB 4: LAPORAN KEGIATAN (Ceklist Realisasi & Biaya) ================= -->
+            <div x-show="activeTab === 'laporan' || isPrintingAll" x-cloak class="space-y-6 print-break-inside-prevent">
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 print-card">
+                    <div>
+                        <h2 class="text-lg font-bold text-slate-800">Laporan Kegiatan & Realisasi Biaya</h2>
+                        <p class="text-xs text-slate-500">Ceklist indikator keberhasilan realisasi tugas dan perbandingan total anggaran RAB vs biaya aktual.</p>
+                    </div>
+                    <button @click="openPrintModal()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 shadow-sm no-print">
+                        <i class="fa-solid fa-print"></i> Cetak Laporan Lengkap
+                    </button>
+                </div>
+
+                <!-- Report List Cards -->
+                <div class="grid grid-cols-1 gap-6">
+                    <template x-for="item in prokers" :key="item.id">
+                        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 space-y-4 print-card">
+                            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-100 pb-4">
+                                <div>
+                                    <div class="flex items-center gap-2">
+                                        <h3 class="font-bold text-base text-slate-800" x-text="item.nama"></h3>
+                                        <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold"
+                                            :class="{
+                                                'bg-amber-100 text-amber-800': item.status === 'Rencana',
+                                                'bg-blue-100 text-blue-800': item.status === 'Sedang Berjalan',
+                                                'bg-emerald-100 text-emerald-800': item.status === 'Selesai',
+                                                'bg-rose-100 text-rose-800': item.status === 'Tertunda'
+                                            }" x-text="item.status"></span>
+                                    </div>
+                                    <p class="text-xs text-slate-500 mt-1">PJ: <span class="font-medium text-slate-700" x-text="item.pj"></span> | Bidang: <span class="font-medium text-slate-700" x-text="item.bidang"></span></p>
+                                </div>
+                                <div class="flex items-center gap-6 bg-slate-50 px-4 py-2.5 rounded-xl border border-slate-100 w-full md:w-auto justify-between">
+                                    <div>
+                                        <div class="flex items-center gap-1">
+                                            <p class="text-[10px] text-slate-400 uppercase font-semibold">Total RAB Rencana</p>
+                                            <button @click="openRabModal(item)" class="text-indigo-600 hover:text-indigo-800 text-xs ml-1 no-print"><i class="fa-solid fa-eye"></i></button>
+                                        </div>
+                                        <p class="text-sm font-bold text-slate-700" x-text="formatIDR(calculateProkerRabTotal(item))"></p>
+                                    </div>
+                                    <div class="border-l border-slate-200 pl-6">
+                                        <p class="text-[10px] text-slate-400 uppercase font-semibold">Realisasi Biaya Aktual</p>
+                                        <input type="number" x-model.number="item.realisasiBiaya" :disabled="isReadOnly" @input="saveData()" class="text-sm font-bold text-indigo-600 bg-white border border-slate-200 rounded px-2 py-1 w-32 focus:outline-none focus:border-indigo-500 disabled:bg-slate-100">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Checklist Realisasi -->
+                            <div class="space-y-3">
+                                <div class="flex justify-between items-center">
+                                    <h4 class="text-xs font-bold text-slate-600 uppercase tracking-wider">Ceklist Indikator Realisasi Kegiatan</h4>
+                                    <button x-show="!isReadOnly" @click="addChecklistItem(item)" class="text-xs font-semibold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 no-print">
+                                        <i class="fa-solid fa-plus text-[10px]"></i> Tambah Ceklist
+                                    </button>
+                                </div>
+                                <div class="space-y-2">
+                                    <template x-for="(check, cIdx) in item.checklist" :key="cIdx">
+                                        <div class="flex items-center justify-between bg-slate-50/70 p-2.5 rounded-xl border border-slate-100">
+                                            <label class="flex items-center gap-3 cursor-pointer select-none flex-grow">
+                                                <input type="checkbox" x-model="check.done" :disabled="isReadOnly" @change="updateProgress(item); saveData()" class="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 border-slate-300">
+                                                <span class="text-sm text-slate-700" :class="check.done ? 'line-through text-slate-400' : ''" x-text="check.text"></span>
+                                            </label>
+                                            <button x-show="!isReadOnly" @click="removeChecklistItem(item, cIdx)" class="text-slate-400 hover:text-rose-600 p-1 text-xs no-print">
+                                                <i class="fa-solid fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </template>
+                                    <div x-show="!item.checklist || item.checklist.length === 0" class="text-xs text-slate-400 italic py-2">
+                                        Belum ada item ceklist realisasi kegiatan.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </div>
+
+            <!-- ================= TAB 5: DOKUMENTASI KEGIATAN ================= -->
+            <div x-show="activeTab === 'dokumentasi' || isPrintingAll" x-cloak class="space-y-6 print-break-inside-prevent">
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 print-card">
+                    <div>
+                        <h2 class="text-lg font-bold text-slate-800">Arsip & Dokumentasi Kegiatan</h2>
+                        <p class="text-xs text-slate-500">Unggah dan kelola foto kegiatan serta arsip catatan pelaksanaan proker.</p>
+                    </div>
+                    <button x-show="!isReadOnly" @click="openDocModal()" class="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold transition-all shadow-sm flex items-center gap-2 no-print">
+                        <i class="fa-solid fa-plus text-xs"></i> Tambah Dokumentasi
+                    </button>
+                </div>
+
+                <!-- Gallery Cards -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <template x-for="doc in dokumentasis" :key="doc.id">
+                        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col print-card">
+                            <div class="h-48 bg-slate-100 relative">
+                                <img :src="doc.imageUrl" :alt="doc.judul" class="w-full h-full object-cover" @error="$event.target.src='https://placehold.co/600x400/indigo/white?text=Gambar+Dokumentasi'">
+                                <span class="absolute top-3 right-3 bg-slate-900/70 text-white text-[10px] font-semibold px-2.5 py-1 rounded-full backdrop-blur-sm" x-text="doc.kategori"></span>
+                            </div>
+                            <div class="p-5 flex flex-col flex-grow justify-between gap-4">
+                                <div>
+                                    <h3 class="font-bold text-slate-800 text-base" x-text="doc.judul"></h3>
+                                    <p class="text-xs text-slate-400 mt-1"><i class="fa-regular fa-calendar mr-1"></i> <span x-text="doc.tanggal"></span></p>
+                                    <p class="text-xs text-slate-600 mt-3" x-text="doc.catatan"></p>
+                                </div>
+                                <div class="flex justify-between items-center pt-3 border-t border-slate-100">
+                                    <span class="text-xs font-medium text-indigo-600" x-text="doc.prokerTerkait"></span>
+                                    <button x-show="!isReadOnly" @click="deleteDoc(doc.id)" class="text-xs text-rose-500 hover:text-rose-700 font-medium no-print">
+                                        <i class="fa-solid fa-trash mr-1"></i> Hapus
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+                    <div x-show="!dokumentasis || dokumentasis.length === 0" class="col-span-3 bg-white p-12 rounded-2xl border border-slate-200 text-center text-slate-400">
+                        Belum ada arsip dokumentasi yang diunggah.
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer Tanda Tangan Khusus Hasil Print -->
+            <div class="hidden print:block pt-12 mt-12 border-t border-slate-300">
+                <div class="grid grid-cols-2 gap-8 text-center text-xs">
+                    <div>
+                        <p class="font-medium text-slate-600">Mengetahui,</p>
+                        <p class="font-bold text-slate-800 mt-1">Ketua Umum Organisasi</p>
+                        <div class="h-20"></div>
+                        <p class="font-bold text-slate-900 underline">( ___________________________ )</p>
+                    </div>
+                    <div>
+                        <p class="font-medium text-slate-600">Dibuat Oleh,</p>
+                        <p class="font-bold text-slate-800 mt-1">Sekretaris / Bendahara Umum</p>
+                        <div class="h-20"></div>
+                        <p class="font-bold text-slate-900 underline">( ___________________________ )</p>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- ================= MODAL TAMBAH/EDIT PROKER ================= -->
+    <div x-show="showModalProker" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4 no-print">
+        <div class="bg-white rounded-2xl shadow-xl max-w-lg w-full overflow-hidden border border-slate-200">
+            <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                <h3 class="font-bold text-slate-800" x-text="isEditMode ? 'Edit Program Kerja' : 'Tambah Program Kerja'"></h3>
+                <button @click="showModalProker = false" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <form @submit.prevent="saveProker()" class="p-6 space-y-4 text-xs">
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">Nama Program Kerja</label>
+                    <input type="text" x-model="formProker.nama" required class="w-full border border-slate-200 rounded-xl px-3 py-2 focus:outline-none focus:border-indigo-500">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1">Bidang / Kementerian</label>
+                        <input type="text" x-model="formProker.bidang" required class="w-full border border-slate-200 rounded-xl px-3 py-2 focus:outline-none focus:border-indigo-500">
+                    </div>
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1">Penanggung Jawab (PJ)</label>
+                        <input type="text" x-model="formProker.pj" required class="w-full border border-slate-200 rounded-xl px-3 py-2 focus:outline-none focus:border-indigo-500">
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1">Waktu Pelaksanaan</label>
+                        <input type="text" x-model="formProker.waktu" placeholder="cth: Bulan ke-2 / Maret" required class="w-full border border-slate-200 rounded-xl px-3 py-2 focus:outline-none focus:border-indigo-500">
+                    </div>
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1">Status Utama</label>
+                        <select x-model="formProker.status" class="w-full border border-slate-200 rounded-xl px-3 py-2 focus:outline-none focus:border-indigo-500">
+                            <option value="Rencana">Rencana</option>
+                            <option value="Sedang Berjalan">Sedang Berjalan</option>
+                            <option value="Selesai">Selesai</option>
+                            <option value="Tertunda">Tertunda</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">Deskripsi Singkat Proker</label>
+                    <textarea x-model="formProker.deskripsi" rows="3" class="w-full border border-slate-200 rounded-xl px-3 py-2 focus:outline-none focus:border-indigo-500"></textarea>
+                </div>
+                <div class="pt-4 border-t border-slate-100 flex justify-end gap-2">
+                    <button type="button" @click="showModalProker = false" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-semibold">Batal</button>
+                    <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-semibold">Simpan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ================= MODAL TAMBAH DOKUMENTASI ================= -->
+    <div x-show="showModalDoc" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4 no-print">
+        <div class="bg-white rounded-2xl shadow-xl max-w-lg w-full overflow-hidden border border-slate-200">
+            <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                <h3 class="font-bold text-slate-800">Tambah Dokumentasi Kegiatan</h3>
+                <button @click="showModalDoc = false" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <form @submit.prevent="saveDoc()" class="p-6 space-y-4 text-xs">
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">Judul / Nama Dokumentasi</label>
+                    <input type="text" x-model="formDoc.judul" required class="w-full border border-slate-200 rounded-xl px-3 py-2 focus:outline-none focus:border-indigo-500">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1">Kategori Kegiatan</label>
+                        <input type="text" x-model="formDoc.kategori" placeholder="cth: Pelatihan / Baksos" required class="w-full border border-slate-200 rounded-xl px-3 py-2 focus:outline-none focus:border-indigo-500">
+                    </div>
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1">Tanggal Kegiatan</label>
+                        <input type="date" x-model="formDoc.tanggal" required class="w-full border border-slate-200 rounded-xl px-3 py-2 focus:outline-none focus:border-indigo-500">
+                    </div>
+                </div>
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">Program Kerja Terkait</label>
+                    <select x-model="formDoc.prokerTerkait" class="w-full border border-slate-200 rounded-xl px-3 py-2 focus:outline-none focus:border-indigo-500">
+                        <option value="Umum">Umum / Lainnya</option>
+                        <template x-for="p in prokers" :key="p.id">
+                            <option :value="p.nama" x-text="p.nama"></option>
+                        </template>
+                    </select>
+                </div>
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">URL / Link Foto Dokumentasi</label>
+                    <input type="url" x-model="formDoc.imageUrl" placeholder="https://..." required class="w-full border border-slate-200 rounded-xl px-3 py-2 focus:outline-none focus:border-indigo-500">
+                </div>
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">Catatan Pelaksanaan</label>
+                    <textarea x-model="formDoc.catatan" rows="3" class="w-full border border-slate-200 rounded-xl px-3 py-2 focus:outline-none focus:border-indigo-500"></textarea>
+                </div>
+                <div class="pt-4 border-t border-slate-100 flex justify-end gap-2">
+                    <button type="button" @click="showModalDoc = false" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-semibold">Batal</button>
+                    <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-semibold">Simpan Dokumentasi</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ================= MODAL PAGU BIDANG ================= -->
+    <div x-show="showModalPaguBidang" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4 no-print">
+        <div class="bg-white rounded-2xl shadow-xl max-w-md w-full overflow-hidden border border-slate-200">
+            <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                <h3 class="font-bold text-slate-800">Tambah Alokasi Pagu Bidang</h3>
+                <button @click="showModalPaguBidang = false" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <form @submit.prevent="addPaguBidang()" class="p-6 space-y-4 text-xs">
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">Nama Bidang / Divisi / Kementerian</label>
+                    <input type="text" x-model="formPaguBidang.nama" required placeholder="cth: Kaderisasi" class="w-full border border-slate-200 rounded-xl px-3 py-2 focus:outline-none focus:border-indigo-500">
+                </div>
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">Alokasi Pagu Maksimal (Rp)</label>
+                    <input type="number" min="0" x-model.number="formPaguBidang.pagu" required class="w-full border border-slate-200 rounded-xl px-3 py-2 focus:outline-none focus:border-indigo-500">
+                </div>
+                <div class="pt-4 border-t border-slate-100 flex justify-end gap-2">
+                    <button type="button" @click="showModalPaguBidang = false" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-semibold">Batal</button>
+                    <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-semibold">Simpan Bidang</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ================= MODAL CETAK / PRINT & PDF LAPORAN ================= -->
+    <div x-show="showModalPrint" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4 no-print">
+        <div class="bg-white rounded-2xl shadow-xl max-w-md w-full overflow-hidden border border-slate-200">
+            <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                <div class="flex items-center gap-2 text-rose-600">
+                    <i class="fa-solid fa-file-pdf text-lg"></i>
+                    <h3 class="font-bold text-slate-800">Export PDF / Cetak Laporan</h3>
+                </div>
+                <button @click="showModalPrint = false" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <div class="p-6 space-y-4 text-xs">
+                <p class="text-slate-600">
+                    Pilih format cetak atau export dokumen laporan resmi di bawah ini.
+                </p>
+
+                <div class="space-y-2 pt-2">
+                    <button @click="exportToPDF()" class="w-full py-3 bg-rose-600 hover:bg-rose-700 text-white font-semibold rounded-xl transition-all shadow-sm flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-file-pdf"></i> Download File PDF Laporan
+                    </button>
+
+                    <button @click="printAllTabs()" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl transition-all shadow-sm flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-print"></i> Cetak / Print Dokumen Lengkap
+                    </button>
+
+                    <button @click="exportToExcel(); showModalPrint = false;" class="w-full py-2.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-semibold rounded-xl transition-all border border-emerald-200 flex items-center justify-center gap-2 mt-2">
+                        <i class="fa-solid fa-file-excel text-emerald-600"></i> Download Format Excel (.xlsx)
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= MODAL BACKUP & RESTORE DATA ================= -->
+    <div x-show="showModalBackup" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4 no-print">
+        <div class="bg-white rounded-2xl shadow-xl max-w-lg w-full overflow-hidden border border-slate-200">
+            <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                <div class="flex items-center gap-2 text-purple-600">
+                    <i class="fa-solid fa-database text-lg"></i>
+                    <h3 class="font-bold text-slate-800">Backup & Restore Data Organisasi</h3>
+                </div>
+                <button @click="showModalBackup = false" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            
+            <div class="p-6 space-y-6 text-xs">
+                <!-- Backup Section -->
+                <div class="p-4 bg-purple-50 border border-purple-100 rounded-2xl space-y-3">
+                    <div class="flex items-center gap-2 text-purple-800 font-bold">
+                        <i class="fa-solid fa-download"></i>
+                        <span>Export Backup Data (JSON)</span>
+                    </div>
+                    <p class="text-slate-600 leading-relaxed">
+                        Unduh seluruh data program kerja, pagu anggaran, RAB, ceklist laporan, dan arsip dokumentasi dalam bentuk berkas JSON untuk amankan data organisasi Anda.
+                    </p>
+                    <button @click="exportBackupJSON()" class="w-full py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-xl transition-all shadow-sm flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-file-arrow-down"></i> Unduh Berkas Backup (.json)
+                    </button>
+                </div>
+
+                <!-- Restore Section -->
+                <div class="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-3">
+                    <div class="flex items-center gap-2 text-slate-800 font-bold">
+                        <i class="fa-solid fa-upload"></i>
+                        <span>Restore Data dari File Backup</span>
+                    </div>
+                    <p class="text-slate-600 leading-relaxed">
+                        Pilih berkas backup JSON yang tersimpan sebelumnya untuk memulihkan seluruh data organisasi.
+                    </p>
+                    <input type="file" id="restoreFile" accept=".json" @change="importBackupJSON($event)" class="block w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 cursor-pointer">
+                </div>
+            </div>
+
+            <div class="p-4 border-t border-slate-100 bg-slate-50 flex justify-end">
+                <button @click="showModalBackup = false" class="px-5 py-2 bg-slate-600 hover:bg-slate-700 text-white rounded-xl text-xs font-semibold">Tutup</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= MODAL BAGIKAN LAPORAN (READ-ONLY) ================= -->
+    <div x-show="showModalShare" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
+        <div class="bg-white rounded-2xl shadow-xl max-w-md w-full overflow-hidden border border-slate-200">
+            <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                <div class="flex items-center gap-2 text-indigo-700">
+                    <i class="fa-solid fa-share-nodes text-lg"></i>
+                    <h3 class="font-bold text-slate-800">Bagikan Laporan (Lihat Saja)</h3>
+                </div>
+                <button @click="showModalShare = false" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <div class="p-6 space-y-4 text-xs">
+                <p class="text-slate-600 leading-relaxed">
+                    Gunakan tautan khusus ini untuk membagikan tampilan laporan ke pimpinan, pengawas, atau anggota. Penerima tautan ini <strong>hanya dapat melihat data (Read-Only)</strong> tanpa memiliki akses untuk mengedit atau menghapus.
+                </p>
+
+                <div>
+                    <label class="block font-semibold text-slate-700 uppercase mb-1">Tautan Laporan (Read-Only Mode)</label>
+                    <div class="flex gap-2">
+                        <input type="text" readonly x-model="shareUrl" class="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-600 focus:outline-none">
+                        <button @click="copyShareLink()" class="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-medium shrink-0 flex items-center gap-1">
+                            <i class="fa-solid fa-copy"></i> Salin
+                        </button>
+                    </div>
+                    <span x-show="copySuccess" class="text-emerald-600 font-semibold text-[11px] block mt-1"><i class="fa-solid fa-circle-check"></i> Tautan berhasil disalin ke clipboard!</span>
+                </div>
+
+                <div class="pt-3 border-t border-slate-100 flex justify-between items-center">
+                    <span class="font-medium text-slate-700">Uji Tampilan Mode Read-Only:</span>
+                    <button @click="toggleReadOnlyMode(!isReadOnly)" 
+                            :class="isReadOnly ? 'bg-amber-100 text-amber-800 border-amber-300' : 'bg-slate-100 text-slate-700 border-slate-200'"
+                            class="px-3 py-1.5 rounded-lg border font-semibold flex items-center gap-1.5">
+                        <i class="fa-solid" :class="isReadOnly ? 'fa-lock' : 'fa-lock-open'"></i>
+                        <span x-text="isReadOnly ? 'Nonaktifkan Read-Only' : 'Aktifkan Read-Only'"></span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= MODAL GOOGLE APPS SCRIPT CODE ================= -->
+    <div x-show="showModalAppsScript" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
+        <div class="bg-white rounded-2xl shadow-xl max-w-3xl w-full overflow-hidden border border-slate-200 max-h-[90vh] flex flex-col">
+            <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                <div class="flex items-center gap-2 text-amber-600">
+                    <i class="fa-solid fa-code text-lg"></i>
+                    <h3 class="font-bold text-slate-800">Kode Google Apps Script (Code.gs)</h3>
+                </div>
+                <button @click="showModalAppsScript = false" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            
+            <div class="p-6 overflow-y-auto space-y-4 text-xs">
+                <div class="p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-800">
+                    <p class="font-bold mb-1"><i class="fa-solid fa-circle-info mr-1"></i> Cara Deploy ke Apps Script:</p>
+                    <ol class="list-decimal pl-4 space-y-1">
+                        <li>Buka Google Sheets baru atau buat di Google Drive.</li>
+                        <li>Klik <strong>Ekstensi &gt; Apps Script</strong>.</li>
+                        <li>Salin kode di bawah ini lalu tempelkan ke berkas <code>Code.gs</code>.</li>
+                        <li>Simpan skrip lalu klik <strong>Terapkan (Deploy) &gt; Web App baru</strong>.</li>
+                        <li>Atur "Who has access" menjadi <strong>Anyone (Siapa Saja)</strong>.</li>
+                    </ol>
+                </div>
+
+                <div class="relative">
+                    <button @click="copyGSCode()" class="absolute top-2 right-2 px-3 py-1 bg-indigo-600 text-white rounded-lg text-[10px] font-semibold hover:bg-indigo-700">
+                        <i class="fa-solid fa-copy"></i> Salin Kode
+                    </button>
+                    <pre class="bg-slate-900 text-slate-100 p-4 rounded-xl font-mono text-[11px] overflow-x-auto h-72" x-text="appsScriptCode"></pre>
+                </div>
+            </div>
+
+            <div class="p-4 border-t border-slate-100 bg-slate-50 flex justify-end">
+                <button @click="showModalAppsScript = false" class="px-5 py-2 bg-slate-600 hover:bg-slate-700 text-white rounded-xl text-xs font-semibold">Tutup</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= MODAL RINCIAN ANGGARAN BIAYA (RAB) ================= -->
+    <div x-show="showModalRab" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
+        <div class="bg-white rounded-2xl shadow-xl max-w-3xl w-full overflow-hidden border border-slate-200 max-h-[90vh] flex flex-col">
+            <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                <div>
+                    <h3 class="font-bold text-slate-800 text-base">Rincian Anggaran Biaya (RAB)</h3>
+                    <p class="text-xs text-slate-500" x-text="activeProkerRab ? activeProkerRab.nama : ''"></p>
+                </div>
+                <button @click="showModalRab = false" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            
+            <div class="p-6 overflow-y-auto space-y-6 flex-grow">
+                <!-- Form Tambah RAB Item -->
+                <div x-show="!isReadOnly" class="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
+                    <h4 class="text-xs font-bold text-slate-700 uppercase tracking-wider"><i class="fa-solid fa-plus-circle text-indigo-600 mr-1"></i> Tambah Item Anggaran</h4>
+                    <form @submit.prevent="addRabItem()" class="grid grid-cols-1 sm:grid-cols-12 gap-3">
+                        <div class="sm:col-span-4">
+                            <input type="text" x-model="newRabItem.uraian" placeholder="Uraian / Kebutuhan" required class="w-full text-xs border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:border-indigo-500">
+                        </div>
+                        <div class="sm:col-span-2">
+                            <input type="number" min="1" x-model.number="newRabItem.volume" placeholder="Vol / Qty" required class="w-full text-xs border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:border-indigo-500">
+                        </div>
+                        <div class="sm:col-span-2">
+                            <input type="text" x-model="newRabItem.satuan" placeholder="Satuan (Pcs/Org)" required class="w-full text-xs border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:border-indigo-500">
+                        </div>
+                        <div class="sm:col-span-3">
+                            <input type="number" min="0" x-model.number="newRabItem.hargaSatuan" placeholder="Harga Satuan (Rp)" required class="w-full text-xs border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:border-indigo-500">
+                        </div>
+                        <div class="sm:col-span-1 flex items-center">
+                            <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg py-2 text-xs font-bold transition-colors">
+                                <i class="fa-solid fa-check"></i>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Tabel Item RAB -->
+                <div class="border border-slate-200 rounded-xl overflow-hidden">
+                    <table class="w-full text-left border-collapse text-xs">
+                        <thead>
+                            <tr class="bg-slate-100 text-slate-600 font-semibold border-b border-slate-200 uppercase">
+                                <th class="p-3">No</th>
+                                <th class="p-3">Uraian Kebutuhan</th>
+                                <th class="p-3 text-center">Volume</th>
+                                <th class="p-3 text-center">Satuan</th>
+                                <th class="p-3 text-right">Harga Satuan</th>
+                                <th class="p-3 text-right">Total Sub-Harga</th>
+                                <th x-show="!isReadOnly" class="p-3 text-center">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100">
+                            <template x-for="(rab, rIdx) in (activeProkerRab ? activeProkerRab.rabItems : [])" :key="rIdx">
+                                <tr class="hover:bg-slate-50/50">
+                                    <td class="p-3 text-slate-400" x-text="rIdx + 1"></td>
+                                    <td class="p-3 font-semibold text-slate-800" x-text="rab.uraian"></td>
+                                    <td class="p-3 text-center font-medium text-slate-700" x-text="rab.volume"></td>
+                                    <td class="p-3 text-center text-slate-500" x-text="rab.satuan"></td>
+                                    <td class="p-3 text-right text-slate-600" x-text="formatIDR(rab.hargaSatuan)"></td>
+                                    <td class="p-3 text-right font-bold text-slate-800" x-text="formatIDR(rab.volume * rab.hargaSatuan)"></td>
+                                    <td x-show="!isReadOnly" class="p-3 text-center">
+                                        <button @click="removeRabItem(rIdx)" class="text-rose-500 hover:text-rose-700 p-1">
+                                            <i class="fa-solid fa-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            </template>
+                            <tr x-show="!activeProkerRab || !activeProkerRab.rabItems || activeProkerRab.rabItems.length === 0">
+                                <td colspan="7" class="p-6 text-center text-slate-400 italic">Belum ada rincian anggaran yang dibuat.</td>
+                            </tr>
+                        </tbody>
+                        <tfoot>
+                            <tr class="bg-indigo-50/80 font-bold text-slate-800 border-t border-indigo-100">
+                                <td colspan="5" class="p-3 text-right uppercase text-[11px] text-indigo-900">Total Rencana RAB:</td>
+                                <td class="p-3 text-right text-indigo-700 text-sm" x-text="formatIDR(calculateProkerRabTotal(activeProkerRab))"></td>
+                                <td x-show="!isReadOnly"></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+
+            <div class="p-4 border-t border-slate-100 bg-slate-50 flex justify-end">
+                <button @click="showModalRab = false" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-semibold shadow-sm">
+                    Tutup
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alpine Data Logic Script -->
+    <script>
+        function appData() {
+            return {
+                activeTab: 'dashboard',
+                showModalProker: false,
+                showModalDoc: false,
+                showModalRab: false,
+                showModalPaguBidang: false,
+                showModalShare: false,
+                showModalAppsScript: false,
+                showModalPrint: false,
+                showModalBackup: false,
+                
+                isEditMode: false,
+                isReadOnly: false,
+                isURLReadOnlyMode: false,
+                isPrintingAll: false,
+                copySuccess: false,
+                shareUrl: '',
+
+                activeProkerRab: null,
+
+                paguTotal: 15000000,
+                paguBidang: [
+                    { nama: 'Kaderisasi', pagu: 8000000 },
+                    { nama: 'Sosial Masyarakat', pagu: 5000000 }
+                ],
+                
+                newRabItem: { uraian: '', volume: 1, satuan: 'Pcs', hargaSatuan: 0 },
+                formPaguBidang: { nama: '', pagu: 0 },
+
+                prokers: [
+                    {
+                        id: 1,
+                        nama: 'Pelatihan Kepemimpinan Dasar (PKD)',
+                        bidang: 'Kaderisasi',
+                        pj: 'Ahmad Fauzi',
+                        waktu: 'Bulan ke-1',
+                        anggaran: 5000000,
+                        realisasiBiaya: 4500000,
+                        status: 'Selesai',
+                        progress: 100,
+                        deskripsi: 'Pelatihan wajib untuk anggota baru organisasi.',
+                        checklist: [
+                            { text: 'Penyusunan Proposal & TOR', done: true },
+                            { text: 'Perizinan Tempat & Pemateri', done: true },
+                            { text: 'Pelaksanaan Acara', done: true },
+                            { text: 'Evaluasi & Laporan Pertanggungjawaban', done: true }
+                        ],
+                        rabItems: [
+                            { uraian: 'Honor Narasumber/Pemateri', volume: 2, satuan: 'Orang', hargaSatuan: 1500000 },
+                            { uraian: 'Konsumsi Peserta & Panitia', volume: 50, satuan: 'Paket', hargaSatuan: 40000 },
+                            { uraian: 'Sewa Gedung & Sound System', volume: 1, satuan: 'Hari', hargaSatuan: 1000000 }
+                        ]
+                    },
+                    {
+                        id: 2,
+                        nama: 'Bakti Sosial Ramadhan',
+                        bidang: 'Sosial Masyarakat',
+                        pj: 'Siti Rahma',
+                        waktu: 'Bulan ke-3',
+                        anggaran: 3500000,
+                        realisasiBiaya: 1200000,
+                        status: 'Sedang Berjalan',
+                        progress: 50,
+                        deskripsi: 'Pembagian sembako dan santunan anak yatim.',
+                        checklist: [
+                            { text: 'Penggalangan Donasi', done: true },
+                            { text: 'Belanja Sembako', done: true },
+                            { text: 'Distribusi Paket', done: false },
+                            { text: 'Penyusunan Dokumentasi', done: false }
+                        ],
+                        rabItems: [
+                            { uraian: 'Paket Sembako Bantuan', volume: 30, satuan: 'Paket', hargaSatuan: 100000 },
+                            { uraian: 'Santunan Tunai', volume: 10, satuan: 'Anak', hargaSatuan: 50000 }
+                        ]
+                    }
+                ],
+
+                dokumentasis: [
+                    {
+                        id: 1,
+                        judul: 'Pembukaan PKD 2026',
+                        kategori: 'Pelatihan',
+                        tanggal: '2026-03-15',
+                        imageUrl: 'https://placehold.co/600x400/indigo/white?text=PKD+2026',
+                        prokerTerkait: 'Pelatihan Kepemimpinan Dasar (PKD)',
+                        catatan: 'Acara dihadiri oleh 50 peserta dan dibuka oleh Ketua Umum.'
+                    }
+                ],
+
+                formProker: { id: null, nama: '', bidang: '', pj: '', waktu: '', anggaran: 0, realisasiBiaya: 0, status: 'Rencana', progress: 0, deskripsi: '', checklist: [], rabItems: [] },
+                formDoc: { id: null, judul: '', kategori: '', tanggal: '', imageUrl: '', prokerTerkait: 'Umum', catatan: '' },
+
+                appsScriptCode: `// ==========================================
+// GOOGLE APPS SCRIPT BACKEND (Code.gs)
+// Sistem Manajemen Program Kerja Organisasi
+// ==========================================
+
+function doGet(e) {
+  return HtmlService.createHtmlOutputFromFile('proker_app')
+      .setTitle('Program Kerja Organisasi')
+      .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
+      .addMetaTag('viewport', 'width=device-width, initial-scale=1');
+}
+
+function getData() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName('Data_Proker');
+  if (!sheet) return null;
+  const rawData = sheet.getRange('A1').getValue();
+  return rawData ? JSON.parse(rawData) : null;
+}
+
+function saveData(jsonString) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName('Data_Proker');
+  if (!sheet) {
+    sheet = ss.insertSheet('Data_Proker');
+  }
+  sheet.getRange('A1').setValue(jsonString);
+  return { status: 'success' };
+}`,
+
+                init() {
+                    const urlParams = new URLSearchParams(window.location.search);
+                    if (urlParams.get('mode') === 'view') {
+                        this.isReadOnly = true;
+                        this.isURLReadOnlyMode = true;
+                    }
+
+                    const savedProkers = localStorage.getItem('org_prokers');
+                    const savedDocs = localStorage.getItem('org_docs');
+                    const savedPaguTotal = localStorage.getItem('org_pagu_total');
+                    const savedPaguBidang = localStorage.getItem('org_pagu_bidang');
+
+                    if (savedProkers) {
+                        try { this.prokers = JSON.parse(savedProkers) || []; } catch(e) { this.prokers = []; }
+                    }
+                    if (savedDocs) {
+                        try { this.dokumentasis = JSON.parse(savedDocs) || []; } catch(e) { this.dokumentasis = []; }
+                    }
+                    if (savedPaguTotal) {
+                        this.paguTotal = Number(savedPaguTotal) || 0;
+                    }
+                    if (savedPaguBidang) {
+                        try { this.paguBidang = JSON.parse(savedPaguBidang) || []; } catch(e) { this.paguBidang = []; }
+                    }
+                },
+
+                openShareModal() {
+                    const baseUrl = window.location.href.split('?')[0];
+                    this.shareUrl = baseUrl + '?mode=view';
+                    this.copySuccess = false;
+                    this.showModalShare = true;
+                },
+
+                openPrintModal() {
+                    this.showModalPrint = true;
+                },
+
+                printCurrentTab() {
+                    this.isPrintingAll = false;
+                    this.showModalPrint = false;
+                    setTimeout(() => { window.print(); }, 300);
+                },
+
+                printAllTabs() {
+                    this.isPrintingAll = true;
+                    this.showModalPrint = false;
+                    setTimeout(() => {
+                        window.print();
+                        this.isPrintingAll = false;
+                    }, 300);
+                },
+
+                copyShareLink() {
+                    const el = document.createElement('textarea');
+                    el.value = this.shareUrl;
+                    document.body.appendChild(el);
+                    el.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(el);
+                    this.copySuccess = true;
+                    setTimeout(() => { this.copySuccess = false; }, 3000);
+                },
+
+                copyGSCode() {
+                    const el = document.createElement('textarea');
+                    el.value = this.appsScriptCode;
+                    document.body.appendChild(el);
+                    el.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(el);
+                    alert('Kode Google Apps Script berhasil disalin!');
+                },
+
+                toggleReadOnlyMode(val) {
+                    this.isReadOnly = val;
+                },
+
+                saveData() {
+                    if (this.isReadOnly) return;
+                    localStorage.setItem('org_prokers', JSON.stringify(this.prokers));
+                    localStorage.setItem('org_docs', JSON.stringify(this.dokumentasis));
+                    localStorage.setItem('org_pagu_total', this.paguTotal);
+                    localStorage.setItem('org_pagu_bidang', JSON.stringify(this.paguBidang));
+                },
+
+                formatIDR(value) {
+                    return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(value || 0);
+                },
+
+                calculateProkerRabTotal(proker) {
+                    if (!proker) return 0;
+                    if (proker.rabItems && proker.rabItems.length > 0) {
+                        return proker.rabItems.reduce((sum, item) => sum + ((Number(item.volume) || 0) * (Number(item.hargaSatuan) || 0)), 0);
+                    }
+                    return Number(proker.anggaran) || 0;
+                },
+
+                totalAnggaranPlan() {
+                    if (!this.prokers) return 0;
+                    return this.prokers.reduce((acc, curr) => acc + this.calculateProkerRabTotal(curr), 0);
+                },
+
+                totalRealisasiBiaya() {
+                    if (!this.prokers) return 0;
+                    return this.prokers.reduce((acc, curr) => acc + (Number(curr.realisasiBiaya) || 0), 0);
+                },
+
+                sisaPagu() {
+                    return this.paguTotal - this.totalAnggaranPlan();
+                },
+
+                persentaseRAB() {
+                    if (!this.paguTotal || this.paguTotal === 0) return 0;
+                    return Math.round((this.totalAnggaranPlan() / this.paguTotal) * 100);
+                },
+
+                persentaseRealisasi() {
+                    if (!this.paguTotal || this.paguTotal === 0) return 0;
+                    return Math.round((this.totalRealisasiBiaya() / this.paguTotal) * 100);
+                },
+
+                countProkerByBidang(namaBidang) {
+                    if (!this.prokers) return 0;
+                    return this.prokers.filter(p => p.bidang && p.bidang.toLowerCase() === namaBidang.toLowerCase()).length;
+                },
+
+                totalRabBidang(namaBidang) {
+                    if (!this.prokers) return 0;
+                    return this.prokers
+                        .filter(p => p.bidang && p.bidang.toLowerCase() === namaBidang.toLowerCase())
+                        .reduce((sum, p) => sum + this.calculateProkerRabTotal(p), 0);
+                },
+
+                totalRealisasiBidang(namaBidang) {
+                    if (!this.prokers) return 0;
+                    return this.prokers
+                        .filter(p => p.bidang && p.bidang.toLowerCase() === namaBidang.toLowerCase())
+                        .reduce((sum, p) => sum + (Number(p.realisasiBiaya) || 0), 0);
+                },
+
+                openModalPaguBidang() {
+                    if (this.isReadOnly) return;
+                    this.formPaguBidang = { nama: '', pagu: 0 };
+                    this.showModalPaguBidang = true;
+                },
+
+                addPaguBidang() {
+                    if (this.isReadOnly || !this.formPaguBidang.nama) return;
+                    const existingIndex = this.paguBidang.findIndex(b => b.nama.toLowerCase() === this.formPaguBidang.nama.toLowerCase());
+                    if (existingIndex !== -1) {
+                        this.paguBidang[existingIndex].pagu = this.formPaguBidang.pagu;
+                    } else {
+                        this.paguBidang.push({ ...this.formPaguBidang });
+                    }
+                    this.saveData();
+                    this.showModalPaguBidang = false;
+                },
+
+                removePaguBidang(index) {
+                    if (this.isReadOnly) return;
+                    this.paguBidang.splice(index, 1);
+                    this.saveData();
+                },
+
+                openProkerModal() {
+                    if (this.isReadOnly) return;
+                    this.isEditMode = false;
+                    this.formProker = { id: Date.now(), nama: '', bidang: '', pj: '', waktu: '', anggaran: 0, realisasiBiaya: 0, status: 'Rencana', progress: 0, deskripsi: '', checklist: [{ text: 'Penyusunan Rencana', done: false }], rabItems: [] };
+                    this.showModalProker = true;
+                },
+
+                editProker(item) {
+                    if (this.isReadOnly) return;
+                    this.isEditMode = true;
+                    this.formProker = JSON.parse(JSON.stringify(item));
+                    this.showModalProker = true;
+                },
+
+                saveProker() {
+                    if (this.isReadOnly) return;
+                    if (this.isEditMode) {
+                        const index = this.prokers.findIndex(p => p.id === this.formProker.id);
+                        if (index !== -1) this.prokers[index] = this.formProker;
+                    } else {
+                        this.prokers.push(this.formProker);
+                    }
+                    this.saveData();
+                    this.showModalProker = false;
+                },
+
+                deleteProker(id) {
+                    if (this.isReadOnly) return;
+                    this.prokers = this.prokers.filter(p => p.id !== id);
+                    this.saveData();
+                },
+
+                openDocModal() {
+                    if (this.isReadOnly) return;
+                    this.formDoc = { id: Date.now(), judul: '', kategori: '', tanggal: new Date().toISOString().split('T')[0], imageUrl: '', prokerTerkait: 'Umum', catatan: '' };
+                    this.showModalDoc = true;
+                },
+
+                saveDoc() {
+                    if (this.isReadOnly) return;
+                    this.dokumentasis.push({ ...this.formDoc });
+                    this.saveData();
+                    this.showModalDoc = false;
+                },
+
+                deleteDoc(id) {
+                    if (this.isReadOnly) return;
+                    this.dokumentasis = this.dokumentasis.filter(d => d.id !== id);
+                    this.saveData();
+                },
+
+                addChecklistItem(item) {
+                    if (this.isReadOnly) return;
+                    if (!item.checklist) item.checklist = [];
+                    item.checklist.push({ text: 'Tugas / Indikator Baru', done: false });
+                    this.updateProgress(item);
+                    this.saveData();
+                },
+
+                removeChecklistItem(item, index) {
+                    if (this.isReadOnly || !item.checklist) return;
+                    item.checklist.splice(index, 1);
+                    this.updateProgress(item);
+                    this.saveData();
+                },
+
+                updateProgress(item) {
+                    if (!item.checklist || item.checklist.length === 0) {
+                        item.progress = 0;
+                        return;
+                    }
+                    const doneCount = item.checklist.filter(c => c.done).length;
+                    item.progress = Math.round((doneCount / item.checklist.length) * 100);
+                },
+
+                openRabModal(proker) {
+                    this.activeProkerRab = proker;
+                    if (!this.activeProkerRab.rabItems) {
+                        this.activeProkerRab.rabItems = [];
+                    }
+                    this.newRabItem = { uraian: '', volume: 1, satuan: 'Pcs', hargaSatuan: 0 };
+                    this.showModalRab = true;
+                },
+
+                addRabItem() {
+                    if (this.isReadOnly || !this.activeProkerRab) return;
+                    if (!this.activeProkerRab.rabItems) this.activeProkerRab.rabItems = [];
+                    this.activeProkerRab.rabItems.push({ ...this.newRabItem });
+                    this.newRabItem = { uraian: '', volume: 1, satuan: 'Pcs', hargaSatuan: 0 };
+                    this.saveData();
+                },
+
+                removeRabItem(index) {
+                    if (this.isReadOnly || !this.activeProkerRab || !this.activeProkerRab.rabItems) return;
+                    this.activeProkerRab.rabItems.splice(index, 1);
+                    this.saveData();
+                },
+
+                exportToExcel() {
+                    if (!this.prokers || this.prokers.length === 0) {
+                        return;
+                    }
+
+                    const summaryData = this.prokers.map((p, idx) => ({
+                        'No': idx + 1,
+                        'Nama Program Kerja': p.nama || '',
+                        'Bidang / Sektor': p.bidang || '',
+                        'Penanggung Jawab (PJ)': p.pj || '',
+                        'Waktu Pelaksanaan': p.waktu || '',
+                        'Status': p.status || '',
+                        'Realisasi Progress (%)': (p.progress || 0) + '%',
+                        'Total Rencana RAB (Rp)': this.calculateProkerRabTotal(p),
+                        'Realisasi Biaya Aktual (Rp)': p.realisasiBiaya || 0,
+                        'Selisih / Sisa (Rp)': this.calculateProkerRabTotal(p) - (p.realisasiBiaya || 0)
+                    }));
+
+                    const rabData = [];
+                    this.prokers.forEach(p => {
+                        if (p.rabItems && p.rabItems.length > 0) {
+                            p.rabItems.forEach(rab => {
+                                rabData.push({
+                                    'Program Kerja': p.nama,
+                                    'Bidang': p.bidang,
+                                    'Uraian Kebutuhan': rab.uraian,
+                                    'Volume': rab.volume,
+                                    'Satuan': rab.satuan,
+                                    'Harga Satuan (Rp)': rab.hargaSatuan,
+                                    'Total Sub-Harga (Rp)': (rab.volume || 0) * (rab.hargaSatuan || 0)
+                                });
+                            });
+                        }
+                    });
+
+                    const wb = XLSX.utils.book_new();
+                    const wsSummary = XLSX.utils.json_to_sheet(summaryData);
+                    XLSX.utils.book_append_sheet(wb, wsSummary, "Ringkasan Proker");
+
+                    if (rabData.length > 0) {
+                        const wsRab = XLSX.utils.json_to_sheet(rabData);
+                        XLSX.utils.book_append_sheet(wb, wsRab, "Rincian RAB");
+                    }
+
+                    XLSX.writeFile(wb, `Laporan_Proker_Organisasi_${new Date().toISOString().split('T')[0]}.xlsx`);
+                },
+
+                exportToPDF() {
+                    this.showModalPrint = false;
+                    this.isPrintingAll = true;
+
+                    setTimeout(() => {
+                        const element = document.querySelector('main');
+                        const opt = {
+                            margin:       [10, 10, 10, 10],
+                            filename:     `Laporan_Program_Kerja_${new Date().toISOString().split('T')[0]}.pdf`,
+                            image:        { type: 'jpeg', quality: 0.98 },
+                            html2canvas:  { scale: 2, useCORS: true, logging: false },
+                            jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+                        };
+
+                        html2pdf().set(opt).from(element).save().then(() => {
+                            this.isPrintingAll = false;
+                        }).catch(() => {
+                            this.isPrintingAll = false;
+                        });
+                    }, 400);
+                },
+
+                exportBackupJSON() {
+                    const backupData = {
+                        version: '1.0',
+                        exportDate: new Date().toISOString(),
+                        paguTotal: this.paguTotal,
+                        paguBidang: this.paguBidang,
+                        prokers: this.prokers,
+                        dokumentasis: this.dokumentasis
+                    };
+
+                    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupData, null, 2));
+                    const downloadAnchor = document.createElement('a');
+                    downloadAnchor.setAttribute("href", dataStr);
+                    downloadAnchor.setAttribute("download", `backup_proker_org_${new Date().toISOString().split('T')[0]}.json`);
+                    document.body.appendChild(downloadAnchor);
+                    downloadAnchor.click();
+                    downloadAnchor.remove();
+                },
+
+                importBackupJSON(event) {
+                    const file = event.target.files[0];
+                    if (!file) return;
+
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        try {
+                            const data = JSON.parse(e.target.result);
+                            if (data.prokers && Array.isArray(data.prokers)) {
+                                this.paguTotal = data.paguTotal || 0;
+                                this.paguBidang = data.paguBidang || [];
+                                this.prokers = data.prokers || [];
+                                this.dokumentasis = data.dokumentasis || [];
+                                this.saveData();
+                                this.showModalBackup = false;
+                            }
+                        } catch (err) {}
+                    };
+                    reader.readAsText(file);
+                }
+            }
+        }
+    </script>
+</body>
+</html>
