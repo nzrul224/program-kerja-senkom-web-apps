@@ -494,4 +494,466 @@
                 <div class="grid grid-cols-2 gap-3">
                     <div>
                         <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">Biro</label>
-                        <input type="text" x-model="formProker.biro" placeholder="Contoh: OPS / PAM" class="w-full p-2 border rounded
+                        <input type="text" x-model="formProker.biro" placeholder="Contoh: OPS / PAM" class="w-full p-2 border rounded text-sm focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">Penanggung Jawab (PJ)</label>
+                        <input type="text" x-model="formProker.pj" placeholder="Nama PJ" class="w-full p-2 border rounded text-sm focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">Waktu Pelaksanaan (Format: Bulan Tahun / Cth: Maret 2026)</label>
+                        <input type="text" x-model="formProker.waktu" placeholder="Contoh: Maret 2026" class="w-full p-2 border rounded text-sm focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">Status</label>
+                        <select x-model="formProker.status" class="w-full p-2 border rounded text-sm focus:ring-2 focus:ring-indigo-500">
+                            <option value="Rencana">Rencana</option>
+                            <option value="Berjalan">Berjalan</option>
+                            <option value="Selesai">Selesai</option>
+                            <option value="Tertunda">Tertunda</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="flex justify-end space-x-2 border-t pt-3">
+                <button @click="showProkerModal = false" class="bg-slate-300 text-slate-700 px-4 py-2 rounded text-sm font-semibold">Batal</button>
+                <button @click="saveProkerData()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded text-sm font-semibold">Simpan Proker</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL FORM TAMBAH / EDIT PAGU TAHUN -->
+    <div x-show="showPaguModal" class="fixed inset-0 bg-slate-900 bg-opacity-50 flex items-center justify-center p-4 z-50 no-print" x-cloak>
+        <div class="bg-white rounded-lg shadow-xl max-w-md w-full p-6 space-y-4">
+            <h3 class="text-lg font-bold text-slate-800 border-b pb-2" x-text="isEditingPagu ? 'Edit Pagu Anggaran' : 'Set Pagu Anggaran Tahun Baru'"></h3>
+            <div class="space-y-3">
+                <div>
+                    <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">Tahun Anggaran</label>
+                    <input type="text" x-model="formPagu.tahun" :disabled="isEditingPagu" placeholder="Contoh: 2027" class="w-full p-2 border rounded text-sm disabled:bg-slate-100">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">Total Pagu (Rp)</label>
+                    <input type="number" x-model.number="formPagu.totalPagu" placeholder="50000000" class="w-full p-2 border rounded text-sm">
+                </div>
+            </div>
+            <div class="flex justify-end space-x-2 border-t pt-3">
+                <button @click="showPaguModal = false" class="bg-slate-300 text-slate-700 px-4 py-2 rounded text-sm">Batal</button>
+                <button @click="saveNewPagu()" class="bg-indigo-600 text-white px-4 py-2 rounded text-sm">Simpan Pagu</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL FORM TAMBAH DOKUMENTASI -->
+    <div x-show="showDocModal" class="fixed inset-0 bg-slate-900 bg-opacity-50 flex items-center justify-center p-4 z-50 no-print" x-cloak>
+        <div class="bg-white rounded-lg shadow-xl max-w-lg w-full p-6 space-y-4">
+            <h3 class="text-lg font-bold text-slate-800 border-b pb-2">Tambah Dokumentasi Kegiatan</h3>
+            <div class="space-y-3">
+                <div>
+                    <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">Judul Kegiatan</label>
+                    <input type="text" x-model="formDoc.judul" placeholder="Contoh: Apel Siaga" class="w-full p-2 border rounded text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">Program Kerja Terkait</label>
+                    <select x-model="formDoc.prokerTerkait" class="w-full p-2 border rounded text-sm">
+                        <option value="">-- Pilih Program Kerja --</option>
+                        <template x-for="p in prokers" :key="p.id">
+                            <option :value="p.nama" x-text="p.nama"></option>
+                        </template>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">URL Gambar Foto</label>
+                    <input type="text" x-model="formDoc.urlFoto" placeholder="https://example.com/foto.jpg" class="w-full p-2 border rounded text-sm">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">Tanggal</label>
+                        <input type="date" x-model="formDoc.tanggal" class="w-full p-2 border rounded text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">Keterangan Singkat</label>
+                        <input type="text" x-model="formDoc.keterangan" placeholder="Keterangan foto..." class="w-full p-2 border rounded text-sm">
+                    </div>
+                </div>
+            </div>
+            <div class="flex justify-end space-x-2 border-t pt-3">
+                <button @click="showDocModal = false" class="bg-slate-300 text-slate-700 px-4 py-2 rounded text-sm">Batal</button>
+                <button @click="saveDocData()" class="bg-indigo-600 text-white px-4 py-2 rounded text-sm">Simpan Dokumentasi</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL RAB DETAILS -->
+    <div x-show="showRabModal" class="fixed inset-0 bg-slate-900 bg-opacity-50 flex items-center justify-center p-4 z-50 no-print" x-cloak>
+        <div class="bg-white rounded-lg shadow-xl max-w-3xl w-full p-6 space-y-4">
+            <h3 class="text-lg font-bold text-slate-800 border-b pb-2">Rincian Anggaran Biaya (RAB)</h3>
+            <div class="space-y-2 max-h-80 overflow-y-auto">
+                <template x-for="(item, index) in currentRabItems" :key="index">
+                    <div class="flex items-center gap-2">
+                        <input type="text" x-model="item.nama" :disabled="isReadOnly || isCurrentProkerYearLocked()" placeholder="Nama Item" class="p-1 border rounded text-sm flex-1">
+                        <input type="number" x-model.number="item.qty" :disabled="isReadOnly || isCurrentProkerYearLocked()" placeholder="Qty" class="p-1 border rounded text-sm w-16 text-center">
+                        <input type="text" x-model="item.satuan" :disabled="isReadOnly || isCurrentProkerYearLocked()" placeholder="Satuan" class="p-1 border rounded text-sm w-20">
+                        <input type="number" x-model.number="item.harga" :disabled="isReadOnly || isCurrentProkerYearLocked()" placeholder="Harga" class="p-1 border rounded text-sm w-28 text-right">
+                        <span class="text-sm font-mono font-bold w-28 text-right" x-text="formatRupiah((item.qty || 0) * (item.harga || 0))"></span>
+                        <button x-show="!isReadOnly && !isCurrentProkerYearLocked()" @click="removeRabItem(index)" class="text-rose-600 hover:text-rose-800 p-1"><i class="fa-solid fa-xmark"></i></button>
+                    </div>
+                </template>
+            </div>
+            <div class="flex justify-between items-center border-t pt-3">
+                <button x-show="!isReadOnly && !isCurrentProkerYearLocked()" @click="addRabItem()" class="bg-emerald-600 text-white px-3 py-1 rounded text-xs font-bold">+ Tambah Item</button>
+                <div class="text-right font-bold text-sm">
+                    Total RAB: <span class="text-indigo-600 font-mono text-base" x-text="formatRupiah(currentRabItems.reduce((acc, i) => acc + ((i.qty||0)*(i.harga||0)), 0))"></span>
+                </div>
+            </div>
+            <div class="flex justify-end space-x-2 border-t pt-3">
+                <button @click="showRabModal = false" class="bg-slate-300 text-slate-700 px-4 py-2 rounded text-sm font-semibold">Tutup</button>
+                <button x-show="!isReadOnly && !isCurrentProkerYearLocked()" @click="saveRab()" class="bg-indigo-600 text-white px-4 py-2 rounded text-sm font-semibold">Simpan RAB</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- SCRIPT APPLICATION DATA & ALPINE LOGIC -->
+    <script>
+        function appData() {
+            return {
+                activeTab: 'dashboard',
+                isReadOnly: false,
+                currentTahun: '2026',
+                
+                // Daftar Pagu multi-tahun & kunci
+                paguList: [
+                    { tahun: '2025', totalPagu: 45000000, isLocked: true },
+                    { tahun: '2026', totalPagu: 50000000, isLocked: false },
+                    { tahun: '2027', totalPagu: 60000000, isLocked: false }
+                ],
+
+                prokers: [
+                    { id: 1, nama: 'Diklat Kamtibmas Anggota', biro: 'OPS', pj: 'H. Ahmad', waktu: 'Maret 2026', status: 'Rencana', realisasiBiaya: 0, catatanRealisasi: '' },
+                    { id: 2, nama: 'Pengamanan Hari Raya', biro: 'PAM', pj: 'Budi S.', waktu: 'April 2026', status: 'Berjalan', realisasiBiaya: 5000000, catatanRealisasi: 'Berjalan lancar' }
+                ],
+                rabs: {
+                    1: [{ nama: 'Sewa Gedung', qty: 1, satuan: 'Hari', harga: 3000000 }, { nama: 'Konsumsi', qty: 50, satuan: 'Porsi', harga: 25000 }],
+                    2: [{ nama: 'Transpor Petugas', qty: 20, satuan: 'Orang', harga: 250000 }]
+                },
+                dokumentasis: [
+                    { id: 1, judul: 'Apel Pasukan PAM', prokerTerkait: 'Pengamanan Hari Raya', keterangan: 'Penyiapan personil', tanggal: '2026-04-10', urlFoto: 'https://via.placeholder.com/400x200?text=Apel+PAM' }
+                ],
+
+                // Filter States
+                dashboardFilterBulan: '',
+                laporanFilterBulan: '',
+                filterProkerKeyword: '',
+                filterProkerBulan: '',
+                filterProkerStatus: '',
+                filterProkerBiro: '',
+
+                daftarBulan: [
+                    { value: 'Januari', label: 'Januari' },
+                    { value: 'Februari', label: 'Februari' },
+                    { value: 'Maret', label: 'Maret' },
+                    { value: 'April', label: 'April' },
+                    { value: 'Mei', label: 'Mei' },
+                    { value: 'Juni', label: 'Juni' },
+                    { value: 'Juli', label: 'Juli' },
+                    { value: 'Agustus', label: 'Agustus' },
+                    { value: 'September', label: 'September' },
+                    { value: 'Oktober', label: 'Oktober' },
+                    { value: 'November', label: 'November' },
+                    { value: 'Desember', label: 'Desember' }
+                ],
+                
+                // Modals
+                showProkerModal: false,
+                isEditingProker: false,
+                formProker: { id: null, nama: '', biro: '', pj: '', waktu: '', status: 'Rencana', realisasiBiaya: 0, catatanRealisasi: '' },
+
+                showPaguModal: false,
+                isEditingPagu: false,
+                formPagu: { tahun: '2028', totalPagu: 70000000 },
+
+                showDocModal: false,
+                formDoc: { id: null, judul: '', prokerTerkait: '', urlFoto: '', tanggal: '', keterangan: '' },
+
+                showRabModal: false,
+                currentProkerIdForRab: null,
+                currentRabItems: [],
+
+                initData() {
+                    const urlParams = new URLSearchParams(window.location.search);
+                    if (urlParams.get('mode') === 'view') this.isReadOnly = true;
+
+                    const savedPaguList = localStorage.getItem('senkom_paguList');
+                    if (savedPaguList) this.paguList = JSON.parse(savedPaguList);
+
+                    const savedProkers = localStorage.getItem('senkom_prokers');
+                    if (savedProkers) this.prokers = JSON.parse(savedProkers);
+
+                    const savedRabs = localStorage.getItem('senkom_rabs');
+                    if (savedRabs) this.rabs = JSON.parse(savedRabs);
+
+                    const savedDocs = localStorage.getItem('senkom_docs');
+                    if (savedDocs) this.dokumentasis = JSON.parse(savedDocs);
+                },
+
+                formatRupiah(val) {
+                    return 'Rp ' + (val || 0).toLocaleString('id-ID');
+                },
+
+                getActivePaguTotal() {
+                    const p = this.paguList.find(x => x.tahun === this.currentTahun);
+                    return p ? p.totalPagu : 50000000;
+                },
+
+                isYearLocked(waktuStr) {
+                    if (!waktuStr) return false;
+                    for (let p of this.paguList) {
+                        if (p.isLocked && waktuStr.includes(p.tahun)) {
+                            return true;
+                        }
+                    }
+                    return false;
+                },
+
+                isCurrentProkerYearLocked() {
+                    const proker = this.prokers.find(p => p.id === this.currentProkerIdForRab);
+                    if (!proker) return false;
+                    return this.isYearLocked(proker.waktu);
+                },
+
+                toggleLockPagu(tahun) {
+                    const p = this.paguList.find(x => x.tahun === tahun);
+                    if (p) {
+                        p.isLocked = !p.isLocked;
+                        localStorage.setItem('senkom_paguList', JSON.stringify(this.paguList));
+                    }
+                },
+
+                openPaguModal() {
+                    this.isEditingPagu = false;
+                    this.formPagu = { tahun: '2028', totalPagu: 70000000 };
+                    this.showPaguModal = true;
+                },
+
+                editPagu(paguItem) {
+                    this.isEditingPagu = true;
+                    this.formPagu = { tahun: paguItem.tahun, totalPagu: paguItem.totalPagu };
+                    this.showPaguModal = true;
+                },
+
+                saveNewPagu() {
+                    if (!this.formPagu.tahun) return;
+                    const existing = this.paguList.find(x => x.tahun === this.formPagu.tahun);
+                    if (existing) {
+                        existing.totalPagu = this.formPagu.totalPagu;
+                    } else {
+                        this.paguList.push({ tahun: this.formPagu.tahun, totalPagu: this.formPagu.totalPagu, isLocked: false });
+                    }
+                    localStorage.setItem('senkom_paguList', JSON.stringify(this.paguList));
+                    this.showPaguModal = false;
+                    alert('Pagu anggaran berhasil disimpan.');
+                },
+
+                calculateProkerRAB(prokerId) {
+                    const items = this.rabs[prokerId] || [];
+                    return items.reduce((sum, item) => sum + ((item.qty || 0) * (item.harga || 0)), 0);
+                },
+
+                // Filtered Computations
+                get filteredProkersForDashboard() {
+                    if (!this.dashboardFilterBulan) return this.prokers;
+                    return this.prokers.filter(p => p.waktu && p.waktu.toLowerCase().includes(this.dashboardFilterBulan.toLowerCase()));
+                },
+
+                getProkersByMonth(bulanNama) {
+                    return this.prokers.filter(p => p.waktu && p.waktu.toLowerCase().includes(bulanNama.toLowerCase()));
+                },
+
+                getProkersCountByMonth(bulanNama) {
+                    return this.getProkersByMonth(bulanNama).length;
+                },
+
+                totalRencanaRABFiltered() {
+                    return this.filteredProkersForDashboard.reduce((sum, p) => sum + this.calculateProkerRAB(p.id), 0);
+                },
+
+                totalRealisasiBiayaFiltered() {
+                    return this.filteredProkersForDashboard.reduce((sum, p) => sum + (p.realisasiBiaya || 0), 0);
+                },
+
+                get uniqueBiros() {
+                    return [...new Set(this.prokers.map(p => p.biro))].filter(Boolean);
+                },
+
+                get filteredProkersList() {
+                    return this.prokers.filter(p => {
+                        const matchKeyword = !this.filterProkerKeyword || p.nama.toLowerCase().includes(this.filterProkerKeyword.toLowerCase()) || p.pj.toLowerCase().includes(this.filterProkerKeyword.toLowerCase());
+                        const matchBulan = !this.filterProkerBulan || (p.waktu && p.waktu.toLowerCase().includes(this.filterProkerBulan.toLowerCase()));
+                        const matchStatus = !this.filterProkerStatus || p.status === this.filterProkerStatus;
+                        const matchBiro = !this.filterProkerBiro || p.biro === this.filterProkerBiro;
+                        return matchKeyword && matchBulan && matchStatus && matchBiro;
+                    });
+                },
+
+                get filteredProkersForLaporan() {
+                    if (!this.laporanFilterBulan) return this.prokers;
+                    return this.prokers.filter(p => p.waktu && p.waktu.toLowerCase().includes(this.laporanFilterBulan.toLowerCase()));
+                },
+
+                saveProkers() {
+                    localStorage.setItem('senkom_prokers', JSON.stringify(this.prokers));
+                },
+
+                openProkerModal() {
+                    this.isEditingProker = false;
+                    this.formProker = { id: null, nama: '', biro: '', pj: '', waktu: '', status: 'Rencana', realisasiBiaya: 0, catatanRealisasi: '' };
+                    this.showProkerModal = true;
+                },
+
+                editProker(item) {
+                    if (this.isYearLocked(item.waktu)) {
+                        alert('Program kerja ini berada pada tahun anggaran yang sudah dikunci.');
+                        return;
+                    }
+                    this.isEditingProker = true;
+                    this.formProker = JSON.parse(JSON.stringify(item));
+                    this.showProkerModal = true;
+                },
+
+                saveProkerData() {
+                    if (!this.formProker.nama.trim()) {
+                        alert('Nama program kerja harus diisi.');
+                        return;
+                    }
+                    if (this.isEditingProker) {
+                        const index = this.prokers.findIndex(p => p.id === this.formProker.id);
+                        if (index !== -1) {
+                            this.prokers[index] = JSON.parse(JSON.stringify(this.formProker));
+                        }
+                    } else {
+                        this.formProker.id = Date.now();
+                        this.prokers.push(JSON.parse(JSON.stringify(this.formProker)));
+                    }
+                    this.saveProkers();
+                    this.showProkerModal = false;
+                },
+
+                deleteProker(id) {
+                    const item = this.prokers.find(p => p.id === id);
+                    if (item && this.isYearLocked(item.waktu)) {
+                        alert('Tidak dapat menghapus proker di tahun anggaran yang sudah dikunci.');
+                        return;
+                    }
+                    if (confirm('Apakah Anda yakin ingin menghapus program kerja ini?')) {
+                        this.prokers = this.prokers.filter(p => p.id !== id);
+                        delete this.rabs[id];
+                        this.saveProkers();
+                        localStorage.setItem('senkom_rabs', JSON.stringify(this.rabs));
+                    }
+                },
+
+                openDocModal() {
+                    this.formDoc = { id: null, judul: '', prokerTerkait: '', urlFoto: '', tanggal: new Date().toISOString().slice(0,10), keterangan: '' };
+                    this.showDocModal = true;
+                },
+
+                saveDocData() {
+                    if (!this.formDoc.judul.trim()) {
+                        alert('Judul kegiatan wajib diisi.');
+                        return;
+                    }
+                    this.formDoc.id = Date.now();
+                    this.dokumentasis.push(JSON.parse(JSON.stringify(this.formDoc)));
+                    localStorage.setItem('senkom_docs', JSON.stringify(this.dokumentasis));
+                    this.showDocModal = false;
+                },
+
+                deleteDoc(id) {
+                    if (confirm('Hapus dokumentasi ini?')) {
+                        this.dokumentasis = this.dokumentasis.filter(d => d.id !== id);
+                        localStorage.setItem('senkom_docs', JSON.stringify(this.dokumentasis));
+                    }
+                },
+
+                openRabModal(prokerId) {
+                    this.currentProkerIdForRab = prokerId;
+                    this.currentRabItems = JSON.parse(JSON.stringify(this.rabs[prokerId] || []));
+                    this.showRabModal = true;
+                },
+
+                addRabItem() {
+                    this.currentRabItems.push({ nama: '', qty: 1, satuan: 'Pcs', harga: 0 });
+                },
+
+                removeRabItem(index) {
+                    this.currentRabItems.splice(index, 1);
+                },
+
+                saveRab() {
+                    this.rabs[this.currentProkerIdForRab] = this.currentRabItems;
+                    localStorage.setItem('senkom_rabs', JSON.stringify(this.rabs));
+                    this.showRabModal = false;
+                },
+
+                openPrintModal() {
+                    window.print();
+                },
+
+                exportToExcel() {
+                    const wb = XLSX.utils.book_new();
+                    const prokerWS = XLSX.utils.json_to_sheet(this.prokers);
+                    XLSX.utils.book_append_sheet(wb, prokerWS, "Program Kerja");
+                    XLSX.writeFile(wb, "Laporan_Proker_Senkom.xlsx");
+                },
+
+                exportToPDF() {
+                    const element = document.querySelector('main');
+                    html2pdf().from(element).save('Laporan_Proker_Senkom.pdf');
+                },
+
+                exportBackupJSON() {
+                    const data = { paguList: this.paguList, prokers: this.prokers, rabs: this.rabs, docs: this.dokumentasis };
+                    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                    const a = document.createElement('a');
+                    a.href = URL.createObjectURL(blob);
+                    a.download = `Backup_Senkom_Proker_${new Date().toISOString().slice(0,10)}.json`;
+                    a.click();
+                },
+
+                importBackupJSON(event) {
+                    const file = event.target.files[0];
+                    if (!file) return;
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        try {
+                            const data = JSON.parse(e.target.result);
+                            if (data.paguList) this.paguList = data.paguList;
+                            if (data.prokers) this.prokers = data.prokers;
+                            if (data.rabs) this.rabs = data.rabs;
+                            if (data.docs) this.dokumentasis = data.docs;
+                            alert('Data berhasil dipulihkan!');
+                        } catch (err) {
+                            alert('File JSON tidak valid.');
+                        }
+                    };
+                    reader.readAsText(file);
+                },
+
+                openShareModal() {
+                    const shareUrl = window.location.origin + window.location.pathname + '?mode=view';
+                    if (navigator.clipboard && navigator.clipboard.writeText) {
+                        navigator.clipboard.writeText(shareUrl).then(() => {
+                            alert('Link Read-Only berhasil disalin ke clipboard:\n' + shareUrl);
+                        }).catch(() => {
+                            prompt('Salin link berikut:', shareUrl);
+                        });
+                    } else {
+                        prompt('Salin link berikut:', shareUrl);
+                    }
+                }
+            };
+        }
+    </script>
+</body>
+</html>
