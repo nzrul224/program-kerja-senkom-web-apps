@@ -42,15 +42,12 @@
       
       <div>
         <h1 class="text-xl font-bold tracking-wide">PROGRAM KERJA ORGANISASI</h1>
-        <p class="text-xs text-indigo-200">Senkom Mitra Polri - Kabupaten / Kota</p>
+        <p class="text-xs text-indigo-200">Senkom Mitra Polri - Provinsi Sulawesi Selatan</p>
       </div>
     </div>
 
     <!-- Tombol / Aksi Tambahan (opsional) -->
-    <div>
-      ...
-    </div>
-
+            
   </div>
 </header>
             <!-- Mode View Only Notice -->
@@ -229,7 +226,7 @@
                     <thead class="bg-slate-800 text-white text-xs uppercase">
                         <tr>
                             <th class="p-3">Program Kerja</th>
-                            <th class="p-3">Bidang / PJ</th>
+                            <th class="p-3">biro / PJ</th>
                             <th class="p-3">Waktu</th>
                             <th class="p-3">Status</th>
                             <th class="p-3 text-right">Rencana RAB</th>
@@ -241,7 +238,7 @@
                             <tr class="hover:bg-slate-50">
                                 <td class="p-3 font-semibold text-slate-800" x-text="item.nama"></td>
                                 <td class="p-3">
-                                    <div class="font-medium text-slate-700" x-text="item.bidang"></div>
+                                    <div class="font-medium text-slate-700" x-text="item.biro"></div>
                                     <div class="text-xs text-slate-400" x-text="'PJ: ' + item.pj"></div>
                                 </td>
                                 <td class="p-3" x-text="item.waktu"></td>
@@ -396,8 +393,8 @@
                 isReadOnly: false,
                 pagu: { totalPagu: 50000000, tahun: '2026' },
                 prokers: [
-                    { id: 1, nama: 'Diklat Kamtibmas Anggota', bidang: 'OPS', pj: 'H. Ahmad', waktu: 'Maret 2026', status: 'Rencana', realisasiBiaya: 0, catatanRealisasi: '' },
-                    { id: 2, nama: 'Pengamanan Hari Raya', bidang: 'PAM', pj: 'Budi S.', waktu: 'April 2026', status: 'Berjalan', realisasiBiaya: 5000000, catatanRealisasi: 'Berjalan lancar' }
+                    { id: 1, nama: 'Diklat Kamtibmas Anggota', biro: 'OPS', pj: 'H. Ahmad', waktu: 'Maret 2026', status: 'Rencana', realisasiBiaya: 0, catatanRealisasi: '' },
+                    { id: 2, nama: 'Pengamanan Hari Raya', biro: 'PAM', pj: 'Budi S.', waktu: 'April 2026', status: 'Berjalan', realisasiBiaya: 5000000, catatanRealisasi: 'Berjalan lancar' }
                 ],
                 rabs: {
                     1: [{ nama: 'Sewa Gedung', qty: 1, satuan: 'Hari', harga: 3000000 }, { nama: 'Konsumsi', qty: 50, satuan: 'Porsi', harga: 25000 }],
